@@ -1,4 +1,16 @@
+# Otterdog configuration file for the lfit-otterdoc-poc GitHub organization.
+# Edit this file to define the desired state of the organization, including
+# its settings, teams, and repositories.
+
+# Import Otterdog's vendored default template as `orgs`. It provides the
+# default settings and constructors used below, such as `newOrg`, `newTeam`,
+# and `newRepo`.
+
 local orgs = import 'vendor/otterdog/examples/template/otterdog-defaults.libsonnet';
+
+# Define what the lfit-otterdoc-poc organization looks like and how it behaves.
+# This includes organization-wide settings, such as what members are allowed
+# to do, and the rules for GHA workflows running in this organization.
 
 orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
   settings+: {
@@ -17,6 +29,11 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       default_workflow_permissions: "write",
     },
   },
+
+  # Define the GitHub teams Otterdog should manage for this organization.
+  # Each team entry sets the team's configuration and membership.
+  # The `members+` list defines which GitHub users should belong to that team.
+
   teams+: [
     orgs.newTeam('Release Engineering') {
       description: "LF Release Engineering",
@@ -29,13 +46,18 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       ],
     },
   ],
+
+  # Define the GitHub repositories Otterdog should manage for this organization.
+  # Each repository entry defines the desired settings for that repository.
+  # Changes here are compared against GitHub and shown in `plan` before applied.
+
   _repositories+:: [
     orgs.newRepo('otterdog-config') {
       allow_merge_commit: true,
       allow_update_branch: false,
       delete_branch_on_merge: false,
       dependabot_alerts_enabled: false,
-      description: "Otterdog configuration-as-code for managing the lfit-otterdoc-poc GitHub organization.",
+      description: "Otterdog configuration-as-code for managing the GH org.",
       private: true,
       web_commit_signoff_required: false,
       workflows+: {
@@ -44,6 +66,10 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
     },
     orgs.newRepo('otterdog-test-repo') {
       description: "Otterdog POC test repository",
+      private: true,
+    },
+    orgs.newRepo('otterdog-test-repo-2') {
+      description: "Otterdog POC test repository 2",
       private: true,
     },
   ],
