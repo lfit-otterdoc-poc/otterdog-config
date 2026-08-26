@@ -1,0 +1,22 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: "Install Otterdog"
+description: "Install and verify the Otterdog CLI"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Install Otterdog"
+      shell: bash
+      run: |
+        # Install Otterdog
+        python3 -m pip install --user pipx
+        python3 -m pipx install "otterdog==1.4.0"
+
+        # Make Otterdog available to later workflow steps
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+        # Verify the installation
+        "$HOME/.local/bin/otterdog" --version
