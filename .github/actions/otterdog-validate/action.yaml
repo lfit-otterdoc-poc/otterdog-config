@@ -1,0 +1,22 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: "Validate Otterdog Organization Configuration"
+description: "Validate Otterdog organization configuration"
+
+inputs:
+  organization:
+    description: "GitHub organization configured in Otterdog"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Validate Otterdog configuration"
+      shell: bash
+      env:
+        INPUT_ORGANIZATION: ${{ inputs.organization }}
+      run: |
+        # Validate the organization configuration
+        otterdog validate "$INPUT_ORGANIZATION"
