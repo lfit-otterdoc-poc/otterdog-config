@@ -1,0 +1,25 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: "Plan Otterdog Configuration Changes"
+description: >-
+  Compare the Otterdog configuration with the live GitHub configuration
+  and show the changes that would be applied.
+
+inputs:
+  organization:
+    description: "Organization key from otterdog.json"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Plan Otterdog configuration changes"
+      shell: bash
+      env:
+        INPUT_ORGANIZATION: ${{ inputs.organization }}
+      run: |
+        # Compare the complete Otterdog configuration with the live
+        # GitHub configuration. This does not apply any changes.
+        otterdog plan "$INPUT_ORGANIZATION" --no-web-ui
