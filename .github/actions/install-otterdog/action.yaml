@@ -12,11 +12,13 @@ runs:
       shell: bash
       run: |
         # Install Otterdog
-        python3 -m pip install --user pipx
-        python3 -m pipx install "otterdog==1.4.0"
+        pipx install "otterdog==1.4.0"
+
+        # Locate the pipx application directory
+        pipx_bin_dir="$(pipx environment --value PIPX_BIN_DIR)"
 
         # Make Otterdog available to later workflow steps
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        echo "$pipx_bin_dir" >> "$GITHUB_PATH"
 
         # Verify the installation
-        "$HOME/.local/bin/otterdog" --version
+        "$pipx_bin_dir/otterdog" --version
