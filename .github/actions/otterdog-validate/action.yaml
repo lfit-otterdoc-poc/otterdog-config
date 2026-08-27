@@ -2,12 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2026 The Linux Foundation
 
-name: "Validate Otterdog Organization Configuration"
-description: "Validate Otterdog organization configuration"
+name: "Validate Otterdog Configuration"
+description: >-
+  Validate the complete Otterdog configuration for a GitHub organization,
+  including organization settings and managed resources such as repositories
+  and teams.
 
 inputs:
   organization:
-    description: "GitHub organization configured in Otterdog"
+    description: "Organization name to validate""
     required: true
 
 runs:
