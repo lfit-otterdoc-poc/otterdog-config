@@ -60,14 +60,25 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       description: "Otterdog configuration-as-code for managing the GH org.",
       private: true,
       web_commit_signoff_required: false,
+
+      # Track the existing GitHub Actions secret without storing or changing
+      # its actual value in this repository.
+      secrets+: [
+        orgs.newRepoSecret('OTTER_API_TOKEN') {
+          value: "********",
+        },
+      ],
+
       workflows+: {
         default_workflow_permissions: "write",
       },
     },
+
     orgs.newRepo('otterdog-test-repo') {
       description: "Otterdog POC test repository",
       private: true,
     },
+
     orgs.newRepo('otterdog-test-repo-2') {
       description: "Otterdog POC test repository 2",
       private: true,

@@ -1,0 +1,42 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: 'Test Otterdog Check Status'
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  test:
+    name: 'Test Otterdog Check Status'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 5
+
+    steps:
+      - name: 'Harden runner'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+        with:
+          egress-policy: 'audit'
+
+      - name: 'Checkout repository'
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 'Install Otterdog'
+        uses: ./.github/actions/install-otterdog
+
+      - name: 'Check Otterdog configuration status'
+        uses: ./.github/actions/otterdog-check-status
+        with:
+          organization: 'lfit-otterdoc-poc'
+        env:
+          OTTER_API_TOKEN: ${{ secrets.OTTER_API_TOKEN }}

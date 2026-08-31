@@ -1,0 +1,47 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: "Check Otterdog Configuration Status"
+description: >-
+  Check whether the Otterdog configuration is valid and synchronized
+  with the live GitHub configuration.
+
+inputs:
+  organization:
+    description: "Organization key from otterdog.json"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Check Otterdog configuration status"
+      shell: bash
+      env:
+        INPUT_ORGANIZATION: ${{ inputs.organization }}
+      run: |
+        status_file="$(mktemp)"
+        trap 'rm -f "$status_file"' EXIT
+
+        # Write Otterdog's validation and synchronization status to JSON.
+        otterdog check-status "$INPUT_ORGANIZATION" \
+          --no-web-ui \
+          --json "$status_file"
+
+        # Fail the action if the configuration is invalid or out of sync.
+        python3 - "$status_file" <<'PY'
+        import json
+        import sys
+
+        with open(sys.argv[1], encoding="utf-8") as f:
+            statuses = json.load(f)
+
+        for status in statuses:
+            if not status["validation_status"]["is_valid"]:
+                sys.exit("Otterdog configuration validation failed.")
+
+            if not status["sync_status"]["in_sync"]:
+                sys.exit("Otterdog configuration is not synchronized with GitHub.")
+
+        print("Otterdog configuration is valid and synchronized with GitHub.")
+        PY
