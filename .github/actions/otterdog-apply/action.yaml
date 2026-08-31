@@ -1,0 +1,32 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: "Apply Otterdog Configuration Changes"
+description: >-
+  Apply the Otterdog configuration to the live GitHub organization.
+
+inputs:
+  organization:
+    description: "Organization key from otterdog.json"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Apply Otterdog configuration changes"
+      shell: bash
+      env:
+        INPUT_ORGANIZATION: ${{ inputs.organization }}
+      run: |
+        # Validate the configuration, compare it with the live GitHub
+        # configuration, and apply the resulting changes.
+        #
+        # --force skips Otterdog's interactive approval prompt so the command
+        # can run in GitHub Actions.
+        #
+        # Resource deletion is intentionally disabled. Otterdog only deletes
+        # resources when --delete-resources is explicitly supplied.
+        otterdog apply "$INPUT_ORGANIZATION" \
+          --no-web-ui \
+          --force
