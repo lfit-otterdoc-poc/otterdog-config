@@ -1,0 +1,53 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: 'Otterdog PR Validation'
+
+# yamllint disable-line rule:truthy
+on:
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.event.pull_request.number }}'
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: 'Validate Otterdog Configuration'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+
+    steps:
+      - name: 'Harden runner'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+        with:
+          egress-policy: 'audit'
+
+      - name: 'Checkout repository'
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 'Install Otterdog'
+        uses: ./.github/actions/install-otterdog
+
+      - name: 'Validate Otterdog configuration'
+        uses: ./.github/actions/otterdog-validate
+        with:
+          organization: 'lfit-otterdoc-poc'
+        env:
+          OTTER_API_TOKEN: ${{ secrets.OTTER_API_TOKEN }}
+
+      - name: 'Plan Otterdog configuration changes'
+        uses: ./.github/actions/otterdog-plan
+        with:
+          organization: 'lfit-otterdoc-poc'
+        env:
+          OTTER_API_TOKEN: ${{ secrets.OTTER_API_TOKEN }}
