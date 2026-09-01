@@ -7,6 +7,7 @@ name: 'GitHub Actions Lint'
 # yamllint disable-line rule:truthy
 on:
   pull_request:
+    types: [opened, reopened, synchronize]
 
 permissions: {}
 
@@ -25,7 +26,7 @@ jobs:
     steps:
       - name: 'Harden runner'
         # yamllint disable-line rule:line-length
-        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40  # v2.20.1
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
         with:
           egress-policy: 'audit'
 
@@ -35,12 +36,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: 'Lint GitHub workflows and actions'
+      - name: 'Run LF pre-commit checks'
         # yamllint disable-line rule:line-length
-        uses: lfreleng-actions/gha-workflow-linter@1deeb31e2474a7610a1a1bc2094d829ef637d09b  # v1.5.5
+        uses: lfreleng-actions/standalone-linting-action@ee9809ed1d0d4815cd0123485d985b12affba406  # v0.3.0
         with:
-          auto-fix: false
-          require-pinned-sha: true
-          skip-actions: false
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+          run_all_hooks: 'true'
+          no_checkout: 'true'
+          github_token: ${{ github.token }}

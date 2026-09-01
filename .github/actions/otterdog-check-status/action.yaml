@@ -41,7 +41,9 @@ runs:
                 sys.exit("Otterdog configuration validation failed.")
 
             if not status["sync_status"]["in_sync"]:
-                sys.exit("Otterdog configuration is not synchronized with GitHub.")
+                sys.exit(
+                    "Otterdog configuration is not synchronized with GitHub."
+                )
 
         print("Otterdog configuration is valid and synchronized with GitHub.")
         PY

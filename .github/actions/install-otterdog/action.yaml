@@ -10,7 +10,13 @@ runs:
   steps:
     - name: "Install Otterdog"
       shell: bash
-      run: |
+
+      # The only environment-file write adds the pipx application
+      # directory to GITHUB_PATH. The value comes directly from pipx,
+      # not from workflow input or other untrusted data.
+      run: | # zizmor: ignore[github-env]
+        set -euo pipefail
+
         # Install Otterdog
         pipx install "otterdog==1.4.0"
 
