@@ -58,7 +58,7 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       delete_branch_on_merge: false,
       dependabot_alerts_enabled: false,
       description: "Otterdog configuration-as-code for managing the GH org.",
-      private: true,
+      private: false,
       web_commit_signoff_required: false,
 
       # Protect the configuration repository's main branch so changes must
