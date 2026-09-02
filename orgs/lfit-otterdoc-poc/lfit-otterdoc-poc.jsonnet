@@ -26,7 +26,7 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
     web_commit_signoff_required: false,
     workflows+: {
       actions_can_approve_pull_request_reviews: false,
-      default_workflow_permissions: "write",
+      default_workflow_permissions: "read",
     },
   },
 
@@ -81,7 +81,7 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       ],
 
       workflows+: {
-        default_workflow_permissions: "write",
+        default_workflow_permissions: "read",
       },
     },
 
