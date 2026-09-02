@@ -61,6 +61,17 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       private: true,
       web_commit_signoff_required: false,
 
+      # Protect the configuration repository's main branch so changes must
+      # go through a pull request before the privileged apply workflow runs.
+      branch_protection_rules: [
+        orgs.newBranchProtectionRule('main') {
+          requires_pull_request: true,
+          required_approving_review_count: 0,
+          requires_status_checks: false,
+          is_admin_enforced: true,
+        },
+      ],
+
       # Track the existing GitHub Actions secret without storing or changing
       # its actual value in this repository.
       secrets+: [
