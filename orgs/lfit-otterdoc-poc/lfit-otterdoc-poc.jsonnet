@@ -81,6 +81,7 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       ],
 
       workflows+: {
+        actions_can_approve_pull_request_reviews: false,
         default_workflow_permissions: "read",
       },
     },
@@ -88,11 +89,17 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
     orgs.newRepo('otterdog-test-repo') {
       description: "Otterdog POC test repository",
       private: true,
+      workflows+: {
+        actions_can_approve_pull_request_reviews: false,
+      },
     },
 
     orgs.newRepo('otterdog-test-repo-2') {
       description: "Otterdog POC test repository 2",
       private: true,
+      workflows+: {
+        actions_can_approve_pull_request_reviews: false,
+      },
     },
   ],
 }
