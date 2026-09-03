@@ -62,12 +62,17 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       web_commit_signoff_required: false,
 
       # Protect the configuration repository's main branch so changes must
-      # go through a pull request before the privileged apply workflow runs.
+      # go through a pull request and pass the required validation checks.
       branch_protection_rules: [
         orgs.newBranchProtectionRule('main') {
           requires_pull_request: true,
           required_approving_review_count: 0,
-          requires_status_checks: false,
+          requires_status_checks: true,
+          requires_strict_status_checks: true,
+          required_status_checks: [
+            "Lint GitHub Actions",
+            "Validate Otterdog Configuration",
+          ],
           is_admin_enforced: true,
         },
       ],
