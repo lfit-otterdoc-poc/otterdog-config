@@ -23,7 +23,7 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
     members_can_fork_private_repositories: true,
     name: "LF Release Engineering Otterdoc POC",
     plan: "enterprise",
-    web_commit_signoff_required: false,
+    web_commit_signoff_required: true,
     workflows+: {
       actions_can_approve_pull_request_reviews: false,
       default_workflow_permissions: "read",
@@ -59,7 +59,7 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
       dependabot_alerts_enabled: false,
       description: "Otterdog configuration-as-code for managing the GH org.",
       private: false,
-      web_commit_signoff_required: false,
+      web_commit_signoff_required: true,
 
       # Protect the configuration repository's main branch so changes must
       # go through a pull request and pass the required validation checks.
