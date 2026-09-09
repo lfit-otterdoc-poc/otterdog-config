@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
 # Otterdog configuration file for the lfit-otterdoc-poc GitHub organization.
 # Edit this file to define the desired state of the organization, including
 # its settings, teams, and repositories.
