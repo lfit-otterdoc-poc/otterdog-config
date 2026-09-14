@@ -7,6 +7,7 @@ name: 'Otterdog PR Validation'
 # yamllint disable-line rule:truthy
 on:
   pull_request:
+    types: [opened, reopened, synchronize]
 
 permissions: {}
 
@@ -23,31 +24,47 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      # Load the LF Release Engineering egress allow-list before
+      # harden-runner enables block mode.
+      - name: 'Load egress allow-list'
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/harden-runner-block-action@805eedb0508c07714b61887a2b87a5c4bbeff22a  # v0.12.1
+        with:
+          # This POC lives outside the lfreleng-actions organization, so the
+          # allow-list source must be explicitly qualified.
+          # yamllint disable-line rule:line-length
+          config: 'lfreleng-actions/.github//.github/harden-runner/lfreleng-actions/allow_list.txt@18d9c4446bea555d0783e850f6d295f844fe8f67'
+
       - name: 'Harden runner'
         # yamllint disable-line rule:line-length
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
         with:
-          egress-policy: 'audit'
+          egress-policy: 'block'
+          allowed-endpoints: >
+            ${{ env.CONNECTION_ALLOW_LIST }}
 
+      # Pull-request content is untrusted. This workflow intentionally does
+      # not expose OTTER_API_TOKEN or any other privileged credential.
       - name: 'Checkout repository'
         # yamllint disable-line rule:line-length
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
 
-      - name: 'Install Otterdog'
-        uses: ./.github/actions/install-otterdog
+      # Install the fixed Otterdog version directly rather than executing
+      # repository-local composite actions from the pull-request checkout.
+      - name: 'Validate local Otterdog configuration'
+        shell: bash
+        run: |
+          set -euo pipefail
 
-      - name: 'Validate Otterdog configuration'
-        uses: ./.github/actions/otterdog-validate
-        with:
-          organization: 'lfit-otterdoc-poc'
-        env:
-          OTTER_API_TOKEN: ${{ secrets.OTTER_API_TOKEN }}
+          pipx install "otterdog==1.4.0"
 
-      - name: 'Plan Otterdog configuration changes'
-        uses: ./.github/actions/otterdog-plan
-        with:
-          organization: 'lfit-otterdoc-poc'
-        env:
-          OTTER_API_TOKEN: ${{ secrets.OTTER_API_TOKEN }}
+          pipx_bin_dir="$(pipx environment --value PIPX_BIN_DIR)"
+
+          "$pipx_bin_dir/otterdog" --version
+
+          # Materialize the local configuration through Otterdog itself.
+          # This catches Jsonnet/model loading failures without requiring
+          # credentials or querying the live GitHub organization.
+          "$pipx_bin_dir/otterdog" show lfit-otterdoc-poc
