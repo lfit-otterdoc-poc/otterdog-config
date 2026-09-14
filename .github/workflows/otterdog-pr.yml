@@ -44,7 +44,7 @@ jobs:
             ${{ env.CONNECTION_ALLOW_LIST }}
 
       # Pull-request content is untrusted. This workflow intentionally does
-      # not expose OTTER_API_TOKEN or any other privileged credential.
+      # not expose the long-lived OTTER_API_TOKEN repository secret.
       - name: 'Checkout repository'
         # yamllint disable-line rule:line-length
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -53,7 +53,7 @@ jobs:
 
       # Install the fixed Otterdog version directly rather than executing
       # repository-local composite actions from the pull-request checkout.
-      - name: 'Validate local Otterdog configuration'
+      - name: 'Materialize local Otterdog configuration'
         shell: bash
         run: |
           set -euo pipefail
@@ -63,8 +63,16 @@ jobs:
           pipx_bin_dir="$(pipx environment --value PIPX_BIN_DIR)"
 
           "$pipx_bin_dir/otterdog" --version
-
-          # Materialize the local configuration through Otterdog itself.
-          # This catches Jsonnet/model loading failures without requiring
-          # credentials or querying the live GitHub organization.
           "$pipx_bin_dir/otterdog" show lfit-otterdoc-poc
+
+      # Otterdog validate requires a GitHub token for semantic checks. Use the
+      # job-scoped repository token instead of the long-lived service PAT.
+      - name: 'Run Otterdog semantic validation'
+        shell: bash
+        env:
+          OTTER_API_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          pipx_bin_dir="$(pipx environment --value PIPX_BIN_DIR)"
+          "$pipx_bin_dir/otterdog" validate lfit-otterdoc-poc
