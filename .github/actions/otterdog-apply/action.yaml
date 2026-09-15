@@ -19,6 +19,8 @@ runs:
       env:
         INPUT_ORGANIZATION: ${{ inputs.organization }}
       run: |
+        set -euo pipefail
+
         # Validate the configuration, compare it with the live GitHub
         # configuration, and apply the resulting changes.
         #

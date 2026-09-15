@@ -6,3 +6,4 @@ orgs/templates/
 orgs/*/vendor/
 .env
 .env.*
+*.docx

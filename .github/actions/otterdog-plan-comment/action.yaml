@@ -1,0 +1,66 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: "Post Otterdog Plan Comment"
+description: >-
+  Post or update a single sticky pull-request comment containing the
+  Otterdog plan output.
+
+inputs:
+  pr_number:
+    description: "Pull request number to comment on"
+    required: true
+  plan_file:
+    description: "Path to the plain-text plan output to embed in the comment"
+    required: true
+  github_token:
+    description: "Token with pull-requests:write permission"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Post or update the Otterdog plan comment"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        INPUT_PR_NUMBER: ${{ inputs.pr_number }}
+        INPUT_PLAN_FILE: ${{ inputs.plan_file }}
+      run: |
+        set -euo pipefail
+
+        # A hidden marker identifies the comment this action manages, so
+        # repeated runs update one comment instead of adding new ones.
+        marker="<!-- otterdog-plan -->"
+
+        body_file="$(mktemp)"
+        trap 'rm -f "$body_file"' EXIT
+
+        {
+          printf '%s\n' "$marker"
+          printf '## Otterdog plan\n\n'
+          printf '```\n'
+          cat "$INPUT_PLAN_FILE"
+          printf '```\n'
+        } > "$body_file"
+
+        # Find an existing managed comment by its hidden marker.
+        jq_filter="map(select(.body | contains(\"${marker}\")))"
+        jq_filter="${jq_filter} | .[0].id // empty"
+        existing_id="$(
+          gh api \
+            "repos/${GITHUB_REPOSITORY}/issues/${INPUT_PR_NUMBER}/comments" \
+            --paginate \
+            --jq "$jq_filter"
+        )"
+
+        if [ -n "$existing_id" ]; then
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/issues/comments/${existing_id}" \
+            -F body=@"$body_file"
+        else
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/issues/${INPUT_PR_NUMBER}/comments" \
+            -F body=@"$body_file"
+        fi

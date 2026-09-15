@@ -1,0 +1,140 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+name: 'Otterdog Plan Comment'
+
+# This trusted companion runs after the untrusted 'Otterdog PR Validation'
+# workflow completes. It runs from the repository default branch, so the
+# privileged OTTER_API_TOKEN and pull-requests:write permission are never
+# exposed to pull-request-controlled workflow definitions. This is the
+# GitHub-recommended pattern for surfacing results of fork pull requests.
+#
+# zizmor flags workflow_run as dangerous because it commonly runs untrusted
+# artifacts with elevated privileges. This workflow does the opposite: the
+# artifact is inert JSON that is re-validated as pure JSON before use, no
+# pull-request code is executed, and credentials are checked out with
+# persist-credentials disabled. The trigger is therefore used safely here.
+# yamllint disable-line rule:truthy
+on:  # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows: ['Otterdog PR Validation']
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.event.workflow_run.id }}'
+  cancel-in-progress: true
+
+jobs:
+  plan-comment:
+    name: 'Plan and comment'
+    runs-on: ubuntu-latest
+    # Only proceed when the validation workflow succeeded on a pull request.
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    timeout-minutes: 10
+
+    steps:
+      - name: 'Load egress allow-list'
+        # yamllint disable-line rule:line-length
+        uses: lfreleng-actions/harden-runner-block-action@805eedb0508c07714b61887a2b87a5c4bbeff22a  # v0.12.1
+        with:
+          # yamllint disable-line rule:line-length
+          config: 'lfreleng-actions/.github//.github/harden-runner/lfreleng-actions/allow_list.txt@18d9c4446bea555d0783e850f6d295f844fe8f67'
+
+      - name: 'Harden runner'
+        # yamllint disable-line rule:line-length
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
+        with:
+          egress-policy: 'block'
+          allowed-endpoints: >
+            ${{ env.CONNECTION_ALLOW_LIST }}
+
+      # Check out the trusted default-branch code. The composite actions used
+      # below run from this trusted checkout, never from pull-request content.
+      - name: 'Checkout repository'
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 'Download pull-request metadata'
+        # yamllint disable-line rule:line-length
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: 'pr-metadata'
+          path: 'pr-metadata'
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 'Read pull-request number'
+        id: 'pr'
+        shell: bash
+        run: |
+          set -euo pipefail
+          number="$(tr -cd '0-9' < pr-metadata/pr-number.txt)"
+          if [ -z "$number" ]; then
+            echo 'No pull-request number found.' >&2
+            exit 1
+          fi
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: 'Install Otterdog'
+        uses: ./.github/actions/install-otterdog
+
+      # Replace the organization configuration with the inert JSON resolved in
+      # the secretless pull-request phase. Otterdog then validates and plans
+      # against the proposed pull-request changes without ever evaluating
+      # pull-request-controlled Jsonnet while the privileged token is present.
+      # Pure JSON has no imports, so this evaluation cannot read files or leak
+      # secrets.
+      - name: 'Stage resolved pull-request configuration'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          resolved='pr-metadata/resolved-org.json'
+          target='orgs/lfit-otterdoc-poc/lfit-otterdoc-poc.jsonnet'
+
+          if [ ! -s "$resolved" ]; then
+            echo 'Resolved configuration artifact is missing or empty.' >&2
+            exit 1
+          fi
+
+          # Reject anything that is not valid JSON. Jsonnet import expressions
+          # are not valid JSON, so a hostile artifact cannot smuggle active
+          # imports into this trusted phase.
+          python3 -c \
+            'import json, sys; json.load(open(sys.argv[1]))' "$resolved"
+
+          cp "$resolved" "$target"
+
+      - name: 'Validate Otterdog configuration'
+        uses: ./.github/actions/otterdog-validate
+        with:
+          organization: 'lfit-otterdoc-poc'
+        env:
+          OTTER_API_TOKEN: ${{ secrets.OTTER_API_TOKEN }}
+
+      - name: 'Plan Otterdog configuration changes'
+        id: 'plan'
+        uses: ./.github/actions/otterdog-plan
+        with:
+          organization: 'lfit-otterdoc-poc'
+          output_file: 'otterdog-plan.txt'
+        env:
+          OTTER_API_TOKEN: ${{ secrets.OTTER_API_TOKEN }}
+
+      - name: 'Post Otterdog plan comment'
+        uses: ./.github/actions/otterdog-plan-comment
+        with:
+          pr_number: ${{ steps.pr.outputs.number }}
+          plan_file: ${{ steps.plan.outputs.plan_file }}
+          github_token: ${{ github.token }}

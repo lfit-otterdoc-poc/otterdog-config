@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: 'Validate Otterdog Configuration'
+  resolve:
+    name: 'Resolve Otterdog Configuration'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,8 +43,11 @@ jobs:
           allowed-endpoints: >
             ${{ env.CONNECTION_ALLOW_LIST }}
 
-      # Pull-request content is untrusted. This workflow intentionally does
-      # not expose the long-lived OTTER_API_TOKEN repository secret.
+      # Pull-request content is untrusted. This workflow is intentionally
+      # secretless: it never exposes any GitHub credential while evaluating
+      # pull-request-controlled Jsonnet. Authenticated work happens only in
+      # the trusted 'Otterdog Plan Comment' companion, against the inert JSON
+      # produced below.
       - name: 'Checkout repository'
         # yamllint disable-line rule:line-length
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -53,7 +56,7 @@ jobs:
 
       # Install the fixed Otterdog version directly rather than executing
       # repository-local composite actions from the pull-request checkout.
-      - name: 'Materialize local Otterdog configuration'
+      - name: 'Install Otterdog'
         shell: bash
         run: |
           set -euo pipefail
@@ -63,16 +66,69 @@ jobs:
           pipx_bin_dir="$(pipx environment --value PIPX_BIN_DIR)"
 
           "$pipx_bin_dir/otterdog" --version
-          "$pipx_bin_dir/otterdog" show lfit-otterdoc-poc
 
-      # Otterdog validate requires a GitHub token for semantic checks. Use the
-      # job-scoped repository token instead of the long-lived service PAT.
-      - name: 'Run Otterdog semantic validation'
+      # Resolve the pull-request organization configuration to inert JSON.
+      # Producing the JSON here, with no secrets in the environment, is safe
+      # even though the Jsonnet is untrusted: nothing sensitive is present to
+      # read. Pure JSON has no imports, so the trusted companion can plan
+      # against it without ever re-evaluating pull-request-controlled Jsonnet
+      # while the privileged OTTER_API_TOKEN is available. A Jsonnet syntax or
+      # evaluation error fails this step, giving pull-request authors immediate
+      # feedback.
+      - name: 'Resolve organization configuration to inert JSON'
         shell: bash
-        env:
-          OTTER_API_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          pipx_bin_dir="$(pipx environment --value PIPX_BIN_DIR)"
-          "$pipx_bin_dir/otterdog" validate lfit-otterdoc-poc
+          pipx_home="$(pipx environment --value PIPX_HOME)"
+          venv_python="${pipx_home}/venvs/otterdog/bin/python"
+
+          mkdir -p pr-metadata
+
+          # Vendor Otterdog's base template (a public repository, no token) and
+          # then evaluate the organization configuration with Otterdog's own
+          # Jsonnet evaluator, so the resolved JSON matches what Otterdog
+          # produces internally.
+          "$venv_python" - <<'PY'
+          import asyncio
+          import json
+          import os
+
+          from otterdog.config import OtterdogConfig
+          from otterdog.utils import jsonnet_evaluate_file
+
+          organization = "lfit-otterdoc-poc"
+
+          config = OtterdogConfig.from_file("otterdog.json", False)
+          org_config = config.get_organization_config(organization)
+          jsonnet_config = org_config.jsonnet_config
+
+          # Materialize the vendored base template (public, unauthenticated).
+          asyncio.run(jsonnet_config.init_template())
+
+          data = jsonnet_evaluate_file(jsonnet_config.org_config_file)
+
+          os.makedirs("pr-metadata", exist_ok=True)
+          out_path = "pr-metadata/resolved-org.json"
+          with open(out_path, "w", encoding="utf-8") as fh:
+              json.dump(data, fh)
+          PY
+
+      # Record the pull-request number so the trusted, privileged
+      # `workflow_run` companion knows which pull request to plan and comment
+      # on. This is the only control data handed across the trust boundary.
+      - name: 'Record pull-request number'
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          echo "$PR_NUMBER" > pr-metadata/pr-number.txt
+
+      - name: 'Upload pull-request metadata'
+        # yamllint disable-line rule:line-length
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: 'pr-metadata'
+          path: 'pr-metadata'
+          retention-days: 1

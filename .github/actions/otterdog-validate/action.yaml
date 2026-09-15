@@ -21,5 +21,7 @@ runs:
       env:
         INPUT_ORGANIZATION: ${{ inputs.organization }}
       run: |
+        set -euo pipefail
+
         # Validate the organization configuration
         otterdog validate "$INPUT_ORGANIZATION"

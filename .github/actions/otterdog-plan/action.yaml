@@ -5,21 +5,44 @@
 name: "Plan Otterdog Configuration Changes"
 description: >-
   Compare the Otterdog configuration with the live GitHub configuration
-  and show the changes that would be applied.
+  and capture the changes that would be applied. This does not apply any
+  changes.
 
 inputs:
   organization:
     description: "Organization key from otterdog.json"
     required: true
+  output_file:
+    description: "Path to write the captured, plain-text plan output"
+    required: false
+    default: "otterdog-plan.txt"
+
+outputs:
+  plan_file:
+    description: "Path to the captured plain-text plan output"
+    value: ${{ steps.plan.outputs.plan_file }}
 
 runs:
   using: "composite"
   steps:
     - name: "Plan Otterdog configuration changes"
+      id: plan
       shell: bash
       env:
         INPUT_ORGANIZATION: ${{ inputs.organization }}
+        INPUT_OUTPUT_FILE: ${{ inputs.output_file }}
       run: |
-        # Compare the complete Otterdog configuration with the live
-        # GitHub configuration. This does not apply any changes.
-        otterdog plan "$INPUT_ORGANIZATION" --no-web-ui
+        set -euo pipefail
+
+        # Compare the complete Otterdog configuration with the live GitHub
+        # configuration. This does not apply any changes.
+        #
+        # Capture combined output so it can be surfaced on the pull request,
+        # while still streaming it to the job log. Strip ANSI escape codes so
+        # the captured text renders cleanly in a comment.
+        otterdog plan "$INPUT_ORGANIZATION" --no-web-ui 2>&1 \
+          | tee /dev/stderr \
+          | sed -E 's/\x1B\[[0-9;]*[A-Za-z]//g' \
+          > "$INPUT_OUTPUT_FILE"
+
+        echo "plan_file=$INPUT_OUTPUT_FILE" >> "$GITHUB_OUTPUT"
