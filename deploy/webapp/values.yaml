@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+#
+# Otterdog WebApp Helm values (deployment template).
+#
+# Chart:  eclipse-csi/otterdog (pinned below)
+#   helm repo add eclipse-csi https://eclipse-csi.github.io/helm-charts
+#   helm repo update
+#   helm upgrade --install otterdog eclipse-csi/otterdog \
+#     --version 1.4.0 -n otterdog --create-namespace \
+#     -f deploy/webapp/values.yaml
+#
+# Architecture: one cluster per umbrella, one WebApp per umbrella, one GitHub
+# App installed on every tenant (project) org, one config repo listing all
+# tenant orgs. See README.md for the full model.
+#
+# SECURITY: this file contains NO secrets. All secret material (config token,
+# GitHub App private key, webhook secret, Dependency-Track token, database
+# credentials) is delivered at runtime by the Vault Secrets Operator (VSO).
+# Never commit tokens, keys, or passwords to this repository.
+---
+# -- Pinned WebApp image (overrides chart appVersion for reproducibility).
+image:
+  repository: ghcr.io/eclipse-csi/otterdog
+  pullPolicy: IfNotPresent
+  tag: "1.5.0"
+
+config:
+  # -- Public base URL the WebApp is served at.
+  baseUrl: "https://otterdog.example.org"
+  # -- GitHub org hosting the Otterdog config repo (this umbrella's config).
+  configOwner: "lfit-otterdoc-poc"
+  # -- Repo holding otterdog.json for this umbrella.
+  configRepo: "otterdog-config"
+  # -- Path to otterdog.json inside the WebApp image work dir.
+  configPath: "/app/otterdog.json"
+  # -- Dependency-Track URL (non-secret; the token comes from Vault).
+  dependencyTrackUrl: "https://dependency-track.example.org"
+  # config.configToken           -> from Vault (otterdog_config_token)
+  # config.dependencyTrackToken  -> from Vault (dependency_track_token)
+  # MongoDB (mongoHost/mongoPort), Valkey (valkeyUri) and GHProxy (ghProxyUri)
+  # connections are auto-derived by the chart from the bundled subcharts.
+
+github:
+  # -- GitHub App ID for this umbrella's App (public identifier, not a secret).
+  appId: "<GITHUB_APP_ID>"
+  # -- Teams allowed to drive Otterdog admin actions via the WebApp.
+  adminTeams: "otterdog-admins"
+  # -- Webhook path. Set explicitly; the chart 1.4.0 default ships a malformed
+  # value (a trailing empty string), which breaks the GitHub App webhook URL.
+  webhookEndpoint: "/github-webhook/receive"
+  # -- Commit-status context the WebApp posts when validating a pull request.
+  # Must match the branch-protection required check in the org Jsonnet.
+  webhookValidationContext: "otterdog/otterdog-validate"
+  # -- Commit-status context the WebApp posts when syncing the default branch.
+  webhookSyncContext: "otterdog/otterdog-sync"
+  # github.appPrivateKey -> from Vault (github_app_key)
+  # github.webhookSecret -> from Vault (github_webhook_secret)
+
+# -- Secrets are synced from Vault via the Vault Secrets Operator (VSO).
+# Fill authPath/role/secretPath for the target environment before deploying.
+vault:
+  enabled: true
+  tlsSkipVerify: false
+  authPath: "auth/kubernetes-otterdog-prod-otterdog"
+  role: "otterdog-prod_otterdog_role"
+  secretMount: "csi"
+  secretPath: "otterdog/prod"
+  serviceAccountName: "secrets-manager-sa"
+  operator:
+    refreshAfter: "30s"
+
+# -- Valkey (Redis) must run WITHOUT authentication: GHProxy does not support an
+# authenticated Redis connection (see the Otterdog install docs). The chart
+# defaults auth on, so disable it explicitly here.
+valkey:
+  auth:
+    enabled: false
+
+# -- Refresh org configs, policies and blueprints after each install/upgrade.
+initJob:
+  enabled: true
+
+# -- Periodic policy checks.
+policies:
+  enabled: true
+  schedule: "*/5 * * * *"
+
+# -- Main ingress for webhook + UI traffic (public HTTPS).
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: otterdog.example.org
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  # -- TLS for the public HTTPS endpoint. The chart renders a TLS section only
+  # when this list is supplied. Point secretName at a certificate managed by
+  # cert-manager or provisioned out of band before deploying.
+  tls:
+    - secretName: otterdog-tls
+      hosts:
+        - otterdog.example.org
+
+# -- Dedicated, IP-restricted ingress for the internal management endpoints
+# (/internal/). Restrict to Otterdog operator networks only.
+protectInit:
+  path: /internal/
+  ingress:
+    enabled: true
+    className: "nginx"
+    host: otterdog.example.org
+    annotations:
+      # This dedicated ingress only serves /internal/, so a source-range
+      # allowlist is enough. This placeholder is deliberately fail-closed
+      # (loopback only) so /internal/ is unreachable until an operator sets
+      # the real management CIDRs for the target environment.
+      nginx.ingress.kubernetes.io/whitelist-source-range: "127.0.0.1/32"
