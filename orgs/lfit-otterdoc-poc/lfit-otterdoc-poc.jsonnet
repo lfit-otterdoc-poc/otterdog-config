@@ -74,9 +74,11 @@ orgs.newOrg('lfit-otterdoc-poc', 'lfit-otterdoc-poc') {
           requires_strict_status_checks: true,
           required_status_checks: [
             "Lint GitHub Actions",
-            # Posted by the Otterdog WebApp (GITHUB_WEBHOOK_VALIDATION_CONTEXT)
-            # when it validates the pull request via the GitHub App webhook.
-            "otterdog/otterdog-validate",
+            # Enable once the Otterdog WebApp cluster is live. The WebApp posts
+            # this check (GITHUB_WEBHOOK_VALIDATION_CONTEXT) when it validates a
+            # pull request. Requiring it before the WebApp exists would block
+            # every PR, so it stays commented out until deployment.
+            # "otterdog/otterdog-validate",
           ],
           is_admin_enforced: true,
         },

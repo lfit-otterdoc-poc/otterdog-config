@@ -76,7 +76,17 @@ Each umbrella cluster must provide the following before you deploy the WebApp.
   authentication** (GHProxy does not support authenticated Redis).
 - **GHProxy** — GitHub API proxy, included in the Otterdog Helm charts.
 
-### Access controls
+### Secrets (Vault Secrets Operator)
+
+The committed values enable Vault (`vault.enabled: true`), so the cluster also
+needs:
+
+- The Vault Secrets Operator running, with its CRDs installed.
+- A reachable Vault with a KV v2 mount holding the Otterdog secrets.
+- The `secrets-manager-sa` service account plus the Vault role and auth-path
+  binding the chart references.
+
+Without these, Helm cannot sync the referenced secrets.
 
 - The WebApp serves internal management endpoints at
   `https://<address>/internal/`; **restrict them by IP** to Otterdog operators
@@ -100,19 +110,27 @@ Create a single GitHub App for the umbrella and install it on every tenant org.
 
 ### Deployment inputs (Helm `values.yaml`)
 
+Non-secret settings live in [deploy/webapp/values.yaml](deploy/webapp/values.yaml):
+
 - `config.configOwner`, `config.configRepo`, `config.configPath` — the Otterdog
   config repo listing all tenant orgs.
-- `config.configToken` (base64), `config.mongoUri`, `config.redisUri`,
-  `config.ghProxyUri`.
-- `github.appId`, `github.appPrivateKey` (base64), `github.webhookSecret`
-  (base64).
-- `github.webhookValidationContext`, `github.webhookSyncContext` — commit
-  status contexts the WebApp reports back to pull requests.
+- `config.baseUrl`, `config.dependencyTrackUrl`.
+- `github.appId`, `github.webhookEndpoint`, `github.webhookValidationContext`,
+  `github.webhookSyncContext` — the commit-status contexts the WebApp reports
+  back to pull requests.
+
+MongoDB, Valkey, and GHProxy connections are auto-derived by the chart from its
+bundled subcharts. Secrets never live in this file — the Vault Secrets Operator
+syncs them at runtime as raw strings (no base64): config token, GitHub App
+private key, webhook secret, Dependency-Track token, and database credentials.
 
 ### Initialization
 
-After deploying (and after every upgrade), initialize the WebApp so it fetches
-config and syncs state:
+The chart runs `/internal/init` automatically as a Helm post-install and
+post-upgrade hook (`initJob.enabled: true`), so the WebApp fetches config and
+syncs state on every install and upgrade.
+
+To re-run it manually for recovery, call the endpoint directly:
 
 ```bash
 curl https://<webapp-address>/internal/init
