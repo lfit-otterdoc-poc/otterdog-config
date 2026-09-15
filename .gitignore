@@ -6,3 +6,6 @@ orgs/templates/
 orgs/*/vendor/
 .env
 .env.*
+
+# Local design document, not tracked in the repository.
+*.docx
