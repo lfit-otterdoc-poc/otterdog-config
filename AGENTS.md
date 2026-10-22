@@ -33,4 +33,8 @@ a pull request, not the full set:
 
 ## Repository specifics
 
+- `templates/otterdog-defaults.libsonnet` and
+  `templates/otterdog-functions.libsonnet` are upstream Eclipse files
+  (EPL-2.0). Never edit them; replace them with a newer pinned copy
+  and record the tag in `REUSE.toml`.
 - `orgs/` is the Otterdog CLI scratch folder. `.gitignore` excludes it.
