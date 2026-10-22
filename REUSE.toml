@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 The Linux Foundation
+
+version = 1
+
+# The two upstream Otterdog template files are copied unchanged from
+# https://github.com/eclipse-csi/otterdog (tag v1.4.0) and keep their
+# Eclipse licence. lf-defaults.libsonnet in the same folder is ours and
+# carries its own SPDX header.
+[[annotations]]
+path = [
+  "templates/otterdog-defaults.libsonnet",
+  "templates/otterdog-functions.libsonnet",
+]
+SPDX-FileCopyrightText = "2023-2025 Eclipse Foundation and others"
+SPDX-License-Identifier = "EPL-2.0"
