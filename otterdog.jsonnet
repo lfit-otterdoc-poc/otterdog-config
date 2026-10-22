@@ -22,8 +22,12 @@
       // repo under templates/ and extend the upstream Otterdog defaults.
       // Format: <repo url>#<path in repo>@<git ref>. Otterdog clones the
       // repo and vendors the templates/ folder next to each org file.
-      // TODO: pin @main to a tag once the templates settle.
-      base_template: 'https://github.com/lfit-otterdoc-poc/otterdog-config#templates/lf-defaults.libsonnet@main',
+      // Pinned to a tag on purpose: Otterdog pulls this ref on every
+      // run, so a floating @main would change policy for every managed
+      // organization the moment anything lands there. To roll out a
+      // change to the defaults: merge it, tag it, then bump this pin in
+      // its own pull request so the webapp plans the effect first.
+      base_template: 'https://github.com/lfit-otterdoc-poc/otterdog-config#templates/lf-defaults.libsonnet@v0.2.0',
       // Folder with one <github_id>.jsonnet file per organization.
       config_dir: 'orgs',
     },
