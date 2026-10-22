@@ -22,6 +22,13 @@
 // Repos mirrored from Gerrit need the pull-request rules off: add the
 // repo name to `exclude_repo_names` of the base ruleset in the org file.
 //
+// Every repository must be declared in its organization file. The
+// repository protections below (secret scanning, Dependabot) apply only
+// to declared repos; a repo created by hand in the GitHub UI has none
+// until it is added. `otterdog plan` lists such repos as extra and the
+// webapp marks the organization out of sync, so the gap shows up fast,
+// but closing it is a pull request to the org file.
+//
 // Reference for every key:
 // https://otterdog.readthedocs.io/en/latest/reference/organization/
 
@@ -80,6 +87,14 @@ local newOrg(name, id=name) = upstream.newOrg(name, id) {
 
     // 7. New repos start on `main`.
     default_branch_name: 'main',
+
+    // 9. GitHub Actions. Workflow tokens get read access and can never
+    // approve a pull request; otherwise a compromised workflow could
+    // satisfy the one-review rule below on its own.
+    workflows+: {
+      default_workflow_permissions: 'read',
+      actions_can_approve_pull_request_reviews: false,
+    },
   },
 
   // 8. Base branch rules on every default branch.
@@ -101,6 +116,12 @@ local newRepo(name) = upstream.newRepo(name) {
 
   // 7. Default branch.
   default_branch: 'main',
+
+  // 9. Same GitHub Actions limits as the organization.
+  workflows+: {
+    default_workflow_permissions: 'read',
+    actions_can_approve_pull_request_reviews: false,
+  },
 };
 
 // Re-export every upstream function, with the LF versions on top.
