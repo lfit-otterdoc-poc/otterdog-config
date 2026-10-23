@@ -78,9 +78,10 @@ local newOrg(name, id=name) = upstream.newOrg(name, id) {
     // 2. Members can read every repo unless given more.
     default_repository_permission: 'read',
 
-    // 3. Only org owners create repos.
+    // 3. Only org owners create repos. Members cannot fork private ones.
     members_can_create_public_repositories: false,
     members_can_create_private_repositories: false,
+    members_can_fork_private_repositories: false,
 
     // 4. Commits made in the GitHub web UI carry a DCO sign-off.
     web_commit_signoff_required: true,
@@ -116,6 +117,12 @@ local newRepo(name) = upstream.newRepo(name) {
 
   // 7. Default branch.
   default_branch: 'main',
+
+  // 3. Forking follows visibility. Public repos stay forkable; private
+  // repos cannot be forked, matching the organization setting above.
+  // Jsonnet evaluates this against the repo's final `private` value, so
+  // an org file only sets `private: true` and this follows.
+  allow_forking: !self.private,
 
   // 9. Same GitHub Actions limits as the organization.
   workflows+: {
