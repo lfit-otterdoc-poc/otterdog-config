@@ -5,3 +5,6 @@
 # imported org files here. The real org files live in each org's
 # `.otterdog` repo, not in this one.
 orgs/
+
+# HTTP response cache the CLI writes during plan and apply.
+.cache/
