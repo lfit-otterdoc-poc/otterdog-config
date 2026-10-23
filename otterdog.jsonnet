@@ -27,7 +27,7 @@
       // organization the moment anything lands there. To roll out a
       // change to the defaults: merge it, tag it, then bump this pin in
       // its own pull request so the webapp plans the effect first.
-      base_template: 'https://github.com/lfit-otterdoc-poc/otterdog-config#templates/lf-defaults.libsonnet@v0.2.0',
+      base_template: 'https://github.com/lfit-otterdoc-poc/otterdog-config#templates/lf-defaults.libsonnet@v0.3.0',
       // Folder with one <github_id>.jsonnet file per organization.
       config_dir: 'orgs',
     },
