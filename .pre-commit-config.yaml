@@ -84,13 +84,13 @@ repos:
         files: "\\.(rst|md|markdown|mdown|mkdn)$"
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: 5b5dddc4fb0f83c3ea1fc5616fa63e115dce83e0  # frozen: v0.49.1
+    rev: cbcdc463be5464e25e3e955a511599a67b9b987f  # frozen: v0.50.0
     hooks:
       - id: markdownlint
         args: ["--fix"]
 
   - repo: https://github.com/fsfe/reuse-tool
-    rev: 9fabf9eb815a57aac116b435e8346c200cdb8604  # frozen: v6.2.0
+    rev: bffd9abdccdd86e7926c871a31564913547552c9  # frozen: v6.3.0
     hooks:
       - id: reuse
 
@@ -106,7 +106,7 @@ repos:
       - id: codespell
 
   - repo: https://github.com/lfreleng-actions/gha-workflow-linter
-    rev: 7bfe053dbc93ece6793014c594dfaf87c8712c47  # frozen: v1.8.3
+    rev: 1a5b59be8718092559caea422dd34aad466f51f3  # frozen: v1.11.0
     hooks:
       - id: gha-workflow-linter
 
@@ -122,7 +122,7 @@ repos:
         always_run: true
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 4f85d46a92dc17713078e5de73f8a13190edf6fc  # frozen: 0.38.2
+    rev: 39478bf2c099a58683d3f1aedf675105318b078d  # frozen: 0.39.0
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
